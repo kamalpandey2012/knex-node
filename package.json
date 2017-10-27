@@ -1,0 +1,24 @@
+{
+  "name": "knex-node",
+  "version": "1.0.0",
+  "description": "1. Introduction     - What is knex?     - Setup and configuration     - Write some code     - Database Options 2. Building queries     - Query builder in detail     - Quick fire demos     - Object graphs / eager loading 3. Schema, migration and seeding      - Schema building      - Knex cli     - Migrations     - Seeding 4. Real world data access     - Write data access code",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kamalpandey2012/knex-node.git"
+  },
+  "author": "kamal@konfinity.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kamalpandey2012/knex-node/issues"
+  },
+  "homepage": "https://github.com/kamalpandey2012/knex-node#readme",
+  "dependencies": {
+    "knex": "^0.13.0",
+    "pg": "^7.3.0",
+    "sqlite3": "^3.1.13"
+  }
+}
