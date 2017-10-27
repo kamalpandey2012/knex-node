@@ -297,6 +297,7 @@ knex.select('title','rating').from('book')
     display.write(err);
 })
 .finally(function(){
+    display.write('done');
     knex.destroy();
 });
 ```
@@ -304,6 +305,190 @@ The code is much more readable. Here first then displays the 'rows' in 'pretty' 
 
 **commit**
 
+## Selecting Data
+- Selecting all columns. Pass no parameter to select query it will default to all columns
+- The sequence is not important for knex query builder
+
+```
+knex.from('book').select(['title','rating'])
+...
+```
+
+this is also a valid syntax with same result and here we have passed columns as arrays which is also acceptable
+
+
+some more iterations or aliases for knex query builder
+
+```
+knex.table('book').column('title', 'rating')...
+```
+
+```
+knex('book').column('title', 'rating')...
+```
+
+there is no better or worse method, all are same so use according to your convenience.
+
+Now let's refractor some code to focus more on query builder not on promises
+```
+let query = knex('book').select('title','rating');
+
+run(query, 'pretty');
+
+function run(knexQuery, mode){
+  return knexQuery.then(function(rows){
+        display.write(rows, mode);
+    })
+    .catch(function(err){
+        display.write(err);
+    })
+    .finally(function(){
+        display.write('done');
+        knex.destroy();
+    });
+}
+```
+
+Get back to some of the select queries 
+
+1. Query should return only the **first element**
+```
+let query = knex('book').select('title','rating').first();
+```
+
+2. Returns only **3 elements** or in simple terms **limit** the result
+```
+let query = knex('book').select('title','rating').limit(2);
+```
+
+3. We want only the ratings
+```
+let query = knex('book').select('ratings');
+```
+Look at the result some ratings are duplicate, 
+
+4. Assume we don't want duplicate data
+```
+let query = knex('book').select('rating').distinct();
+```
+5. What if you want to write raw queries. Even if you write raw queries you will get benefit of connection pooling, and if you use bindings then your parameter values are escaped from sql injection attacks. Assume we want count and we call that column to be bookCount
+```
+let query = knex('book').select(knex.raw("COUNT(*) as bookCount));
+```
+
+6. If we don't want query builder but whole query to be written manually
+```
+let query = knex.raw("SELECT * FROM book WHERE author_id=1");
+```
+
+7. Assume author id is coming from other part of code
+```
+const authorId = 1;
+let query = knex.raw("SELECT * FROM book WHERE author_id = " + authorId);
+```
+but its a bit risky code as anyone can play with the parameter
+
+8. What if authorId is coming from frontend. This time anyone can play with this parameter hence using the bind statement
+```
+const authorId = 1;
+let query = knex.raw("SELECT * FROM book WHERE author_id = ?", [authorId]);
+```
+here the value to be filled will be replaced by '?' and will be passed later by array according to the position of '?' in query. 
+
+If we use raw query string we loose the capability of knex to standarize the result. Check this effect by changing our db to postgreSql
+
+9. What if we want to order the result according to some column and descending order (ascending order is by default)
+[orderBy, orderByRaw]
+```
+let query = knex('book').select('title','rating').orderBy('title','desc');
+```
+
+```
+let query = knex('book').select('title','rating').orderByRaw('title desc');
+```
+
+10. What if we want to paginate the data [offset]. We will get title and id and orderBy id with limit of 2 ie. page size of 2 records.
+```
+let query = knex('book').select('title','id').orderBy('id').limit(2);
+```
+
+11. Now jump to page 2 
+```
+let query = knex('book').select('title','id').orderBy('id').limit(2).offset(2);
+```
+now we are getting another page result
+
+12. Getting minimum rating on books [count, min, max, sum, avg]
+```
+let query = knex('book').min('rating as lowScore');
+```
+
+13. We want to group our result to some column [ groupby, groupByRaw]
+```
+let query = knex('book').select('author_id').min('rating as lowScore').groupBy('author_id');
+```
+
+14. Filtering data [ where, orWhere, andWhere, whereRaw]
+- Object style
+```
+let query = knex('author').where({'firstname':'Mark', 'lastname':'Twain'})
+```
+it will return one record
+- key value style
+```
+let query = knex('author').where("id", 1);
+```
+- Operator syntax
+```
+let query = knex('author').where("id","=", 1); //for equal
+
+let query = knex('author').where("id","<", 1); //for less then
+
+let query = knex('author').where("id","<>", 1); //for not equal to
+//and so on
+```
+- in syntex will return any value matching the condition
+```
+let query = knex('author').where("id","in", [1,2,3]);
+```
+- Passing subquery
+```
+let subQuery = knex('author').select('id').where('id','>',1);
+let query = knex('author').where("id","in", subQuery);
+```
+- Grouping the conditions could be done by function method
+```
+let query = knex('author').where(function(){
+    this.where("id",1).orWhere("id",">",3);
+}).orWhere({'firstname':'Mark'});
+```
+**[whereExist, orWhereExist, whereNotExist, orWhereNotExist]**
+
+```
+let query = knex('book').whereExists(function(){
+    this.from('author').whereRaw('1=1'); //will always true so will return all records
+});
+```
+15. Selecting data from multiple tables ie. using join [join, leftJoin, leftOuterJoin, rightJoin, rightOuterJoin, outerJoin, fullOuterJoin, crossJoin, joinRaw]
+
+```
+let query = knex('book')
+    .join('author', 'author_id', '=', 'book.author_id')
+    .select('author.firstname', 'author.lastname', 'book.title' );
+```
+
+16. If want multiple criterias for join use function with methods like [on, orOn]
+
+```
+let query = knex('book')
+.join('author', function(){
+    this.on('author_id', '=', 'book.author_id').orOn('x','=','y');
+})
+.select('author.firstname', 'author.lastname','book.title');
+```
+Note: this is not a real query as x and y are not defined but you get the idea how to use it
+
+**commit**
 
 
 
