@@ -20,6 +20,7 @@
 ## Preq
     - Nodejs (Course coming soon)
     - Relational database (Course coming soon)
+# 1. Introduction    
 ## 1.1 What is Knex
 Knex is a data access library helping to work with relational databases using node. It provides you with a lot of great features like
 - Connection pooling
@@ -279,6 +280,30 @@ debug: true
 Now run the code, at the top you will see the sql query that is used by knex
 
 **commit**
+
+# 2. Building queries
+## 2.1 Querying with promises
+Promise is an object that represents an operation that hasn't completed yet. It's similar to callback with some better readable code and less christmas tree problem
+
+Lets convert our as callback code to promises here we will be using only one then, you could use multiple thans that will run one after another (remember christmas tree)
+
+in app.js
+```
+knex.select('title','rating').from('book')
+.then(function(rows){
+    display.write(rows, 'pretty');
+})
+.catch(function(err){
+    display.write(err);
+})
+.finally(function(){
+    knex.destroy();
+});
+```
+The code is much more readable. Here first then displays the 'rows' in 'pretty' mode, if error occurs it will go to the catch with only error as parameter and then finally is called in both cases (error or success) to destroy the connection pool
+
+**commit**
+
 
 
 
