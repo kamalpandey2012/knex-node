@@ -305,7 +305,7 @@ The code is much more readable. Here first then displays the 'rows' in 'pretty' 
 
 **commit**
 
-## Selecting Data
+## 2.2 Selecting Data
 - Selecting all columns. Pass no parameter to select query it will default to all columns
 - The sequence is not important for knex query builder
 
@@ -489,6 +489,143 @@ let query = knex('book')
 Note: this is not a real query as x and y are not defined but you get the idea how to use it
 
 **commit**
+
+## 2.3 Object graphs and Eager loading
+If a relational database is queried it returns data in flat tabular format but our applications require data in hierarchy of related objects, known as **object graphs**
+As in our book database we may want to get author id, author name etc and also all the books written by that author.
+This could be achieved by a technique known as **eager loading**
+For ORM's it's a convenient feature but comes with cost of performance and configuration of the entity model.
+
+We can solve this problem by knex without the overhead and configuration of an ORM just by pure code in following ways
+
+1. We will create a single query that returns all of the data needed to make object graph then parse it to desired format.
+```
+let query = knex('book')
+.join('author','author.id','=','book.author_id')
+.select(
+    'author.firstname','author.lastname',
+    'book.title as title', 'book.rating as rating', 'book.id as id'
+)
+.where('author.id',1).debug(false);
+
+run(query, 'json');
+```
+here the output will be in this format 
+```
+...
+   {
+        "firstname": "J.K.",
+        "lastname": "Rowling",
+        "title": "HARRY POTTER AND THE PHILOSOPHER'S STONE",
+        "rating": 8,
+        "id": 1
+    },
+ ...
+```
+but this is not the desired result, we need books array inside the author object so next we will change the structure of query a little bit
+so that identification becomes more easy
+
+change inside the select statement
+```
+  'author.firstname','author.lastname',
+    'book.title as books:title', 'book.rating as books:rating', 'book.id as books:id'
+```
+You might be wondering whether there is a way to convert this returned data to the desired format automatically, here node community comes to your rescue with a module named 'treeize' so install it  `npm install --save treeize`
+- first we will import treeize into our app.js file then 
+- Inside the then query we will create instance of treeize object and then will ask it to grow tree with the rows data then we will print the data according to mode. The code is below
+```
+const treeize = require('treeize');
+... now inside the then statement
+let tree = new treeize();
+tree.grow(rows);
+let authors = tree.getData();
+display.write(authors, mode);
+```
+This will create the books object array inside the author object.
+
+**commit**
+
+2. Sometimes its not always good get all data in a single query (according to data set)
+
+Lets create another file with name demo1.js in the root folder only just to demonstrate the use of two queries and getting the same data as before
+
+```
+const Promise = require('bluebird');
+
+display.clear();
+
+let pAuthorRows = knex('author').where("id",1).debug(false).then();
+let pBookRows = knex('book').where("author_id",1).debug(false).then();
+
+Promise.all([pAuthorRows, pBookRows]).then(function(results){
+    let author = results[0][0];
+    author.books = results[1];
+    display.write(author, "json");
+// display.write(author,'json');
+})
+.finally(function(){
+    knex.destroy();
+});
+```
+here we are using bluebird library that knex uses for its promise library and passing both queries to be run one after another and getting the result in results parameter then parsing it and making it desired datatype.
+
+## 2.4 Insert, update and delete
+demo02.js
+1. Inserting Record
+the insert code is very easy and self explanatory
+```
+const wil = {firstname: 'Williom', lastname: 'shakespear'};
+const ed = {firstname:'edward', lastname:'maya'};
+const dave = {firstname:'dave', lastname:'turner'};
+const jack = {firstname:'jack', lastname:'sparrow'};
+
+knex.insert(jack).into('author').debug(false).then(function(id){
+    display.write(id);
+    return knex('author').debug(false); //select * from authors
+})
+.then(function(authors){
+    display.write(authors,'json');
+})
+.finally(function(){
+    knex.destroy();
+});
+```
+
+to insert more then one value pass array like
+```
+knex.insert([dave, jack]).into('author) 
+...
+```
+2. deleting record
+```
+knex('author').where("id", ">",4).del().debug(false).then(function(count){
+    console.log(count);
+    return knex('author').debug(false);
+}).then(function(authors){
+    display.write(authors,'pretty');
+}).finally(function(){
+    knex.destroy();
+});
+```
+3. Updating record
+```
+knex('book').where('author_id',"=",1)
+    .update({rating:0}).debug(false)
+    .then(function(count){
+        console.log(count);
+        return knex('book').select("author_id","title","rating").debug(false);
+    })
+    .then(function(rows){
+        display.write(rows,'pretty');
+    })
+    .finally(function(){
+        knex.destroy();
+});
+```
+## 2.5 Transaction
+It is an important feature of relational database that allows user to  keep your data consistent in the event of errors or even system failure. Transaction allow you to group actions together in a single unit of work. Each action within the unit of work must succeed for the transaction to take effect. If any operation in the transaction fails, the entire transaction rolls back, and the database returns to the state it was in before the transaction began. So transactions create all or nothing type of situations. Knex allows you to commit your transactions using an implicit promise aware syntax.
+
+**demo04.js** code is self explaining. 
 
 
 
