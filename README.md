@@ -625,7 +625,12 @@ knex('book').where('author_id',"=",1)
 ## 2.5 Transaction
 It is an important feature of relational database that allows user to  keep your data consistent in the event of errors or even system failure. Transaction allow you to group actions together in a single unit of work. Each action within the unit of work must succeed for the transaction to take effect. If any operation in the transaction fails, the entire transaction rolls back, and the database returns to the state it was in before the transaction began. So transactions create all or nothing type of situations. Knex allows you to commit your transactions using an implicit promise aware syntax.
 
-**demo04.js** code is self explaining. 
+**demo04.js** code is self explainatory. 
+
+# 3 Schema building, migration and seeding
+For this topic check repository movies_db
+
+
 
 
 
